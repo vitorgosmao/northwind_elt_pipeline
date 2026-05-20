@@ -1,0 +1,27 @@
+services:
+  db:
+    container_name: db
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: northwind
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgresql_bin:/usr/lib/postgresql
+      - postgresql_data:/var/lib/postgresql  # Remova o "/data" do final aqui
+      - ./northwind.sql:/docker-entrypoint-initdb.d/northwind.sql
+      - ./files:/files
+    ports:
+      - 5432:5432
+    networks:
+      - db
+
+networks:
+  db:
+    driver: bridge
+
+volumes:
+  postgresql_data:
+    driver: local
+  postgresql_bin:
+    driver: local
