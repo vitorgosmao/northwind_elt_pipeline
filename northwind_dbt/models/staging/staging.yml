@@ -1,0 +1,184 @@
+version: 2
+
+models:
+
+  # ==========================
+  # ORDERS
+  # ==========================
+
+  - name: stg_orders
+    description: "Pedidos realizados pelos clientes."
+
+    columns:
+
+      - name: order_id
+        description: "Identificador único do pedido."
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: "Cliente responsável pelo pedido."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+
+
+      - name: employee_id
+        description: "Funcionário responsável pelo atendimento."
+        tests:
+          - relationships:
+              to: ref('stg_employees')
+              field: employee_id
+
+
+  # ==========================
+  # ORDER DETAILS
+  # ==========================
+
+  - name: stg_order_details
+    description: "Produtos associados aos pedidos."
+
+    columns:
+
+      - name: order_id
+        description: "Identificador do pedido."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+
+
+      - name: product_id
+        description: "Produto vendido."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_products')
+              field: product_id
+
+
+      - name: quantity
+        description: "Quantidade vendida do produto."
+        tests:
+          - not_null
+
+
+  # ==========================
+  # CUSTOMERS
+  # ==========================
+
+  - name: stg_customers
+    description: "Cadastro dos clientes."
+
+    columns:
+
+      - name: customer_id
+        description: "Identificador único do cliente."
+        tests:
+          - unique
+          - not_null
+
+
+      - name: country
+        description: "País do cliente."
+
+
+
+  # ==========================
+  # PRODUCTS
+  # ==========================
+
+  - name: stg_products
+    description: "Catálogo de produtos."
+
+    columns:
+
+      - name: product_id
+        description: "Identificador único do produto."
+        tests:
+          - unique
+          - not_null
+
+
+      - name: category_id
+        description: "Categoria associada ao produto."
+        tests:
+          - relationships:
+              to: ref('stg_categories')
+              field: category_id
+
+
+      - name: supplier_id
+        description: "Fornecedor do produto."
+        tests:
+          - relationships:
+              to: ref('stg_suppliers')
+              field: supplier_id
+
+
+  # ==========================
+  # EMPLOYEES
+  # ==========================
+
+  - name: stg_employees
+    description: "Funcionários da empresa."
+
+    columns:
+
+      - name: employee_id
+        description: "Identificador único do funcionário."
+        tests:
+          - unique
+          - not_null
+
+
+  # ==========================
+  # CATEGORIES
+  # ==========================
+
+  - name: stg_categories
+    description: "Categorias dos produtos."
+
+    columns:
+
+      - name: category_id
+        description: "Identificador único da categoria."
+        tests:
+          - unique
+          - not_null
+
+
+  # ==========================
+  # SUPPLIERS
+  # ==========================
+
+  - name: stg_suppliers
+    description: "Fornecedores dos produtos."
+
+    columns:
+
+      - name: supplier_id
+        description: "Identificador único do fornecedor."
+        tests:
+          - unique
+          - not_null
+
+
+  # ==========================
+  # SHIPPERS
+  # ==========================
+
+  - name: stg_shippers
+    description: "Empresas responsáveis pelo transporte."
+
+    columns:
+
+      - name: shipper_id
+        description: "Identificador único da transportadora."
+        tests:
+          - unique
+          - not_null

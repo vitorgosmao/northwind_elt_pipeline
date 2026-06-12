@@ -1,0 +1,19 @@
+version: 2
+
+sources: 
+  - name: northwind
+    database: northwind
+    schema: public
+    tables: 
+      - name: orders
+      - name: order_details
+      - name: customers
+      - name: products
+      - name: employees
+      - name: categories
+      - name: suppliers
+      - name: territories
+      - name: employee_territories
+      - name: region
+      - name: shippers
+     
