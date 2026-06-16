@@ -1,0 +1,77 @@
+version: 2
+
+models:
+
+  - name: fct_order_items
+
+    description: 
+      Fato de vendas no nível de item.
+      Cada registro representa um produto vendido
+      dentro de um pedido.
+
+    columns:
+      - name: order_item_id
+        description: "Chave única do item vendido."
+        tests:
+          - unique
+          - not_null
+          
+      - name: order_id
+        description: "Identificador do pedido."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+
+
+      - name: product_id
+        description: "Identificador do produto vendido."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_products')
+              field: product_id
+
+
+      - name: sales_amount
+        description: "Valor total calculado do item vendido."
+        tests:
+          - not_null
+
+  - name: fct_orders
+
+    description: 
+      Fato de pedidos contendo métricas agregadas
+      no nível do pedido.
+
+    columns:
+
+      - name: order_id
+        description: "Identificador único do pedido."
+        tests:
+          - unique
+          - not_null
+
+
+      - name: customer_id
+        description: "Cliente responsável pelo pedido."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+
+
+      - name: employee_id
+        description: "Funcionário responsável pelo pedido."
+        tests:
+          - relationships:
+              to: ref('stg_employees')
+              field: employee_id
+
+
+      - name: total_sales
+        description: "Valor total do pedido."
+        tests:
+          - not_null

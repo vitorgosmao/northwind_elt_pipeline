@@ -33,29 +33,29 @@ Criar um ambiente reproduzível e escalável para:
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  STAGING (stg_*)                                             │
-│  • Limpeza e normalização básica                             │
-│  • Renomeação de colunas padronizada                         │
+│  STAGING (stg_*)                                            │
+│  • Limpeza e normalização básica                            │
+│  • Renomeação de colunas padronizada                        │
 │  • Validação de tipos de dados                              │
 │  • Remoção de duplicatas e nulos                            │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  ANALYTICS (fct_*, dim_*)                                    │
-│  • Modelos analíticos transformados                          │
-│  • Estrutura dimensional/normalizada                         │
+│  ANALYTICS (fct_*, dim_*)                                   │
+│  • Modelos analíticos transformados                         │
+│  • Estrutura dimensional/normalizada                        │
 │  • Agregações e juncões de negócio                          │
-│  • Pronto para análise exploratória                          │
+│  • Pronto para análise exploratória                         │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  GOLD (gold_*)                                               │
-│  • Métricas de negócio finais                                │
-│  • Agregações e resumos prontos para BI                      │
-│  • Otimizado para dashboards e relatórios                    │
-│  • Consumível por ferramentas de visualização                │
+│  GOLD (gold_*)                                              │
+│  • Métricas de negócio finais                               │
+│  • Agregações e resumos prontos para BI                     │
+│  • Otimizado para dashboards e relatórios                   │
+│  • Consumível por ferramentas de visualização               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -314,15 +314,18 @@ dbt parse                # Valida sintaxe dos modelos
 - [x] Mapeamento das 11 tabelas do Northwind (sources.yml)
 - [x] Estrutura de diretórios (staging, analytics, gold)
 
-### 📋 Fase 2: Camada Staging (Em Andamento)
+### 📋 Fase 2: Camada Staging (Concluída)
 - [x] Criar modelos `stg_*` para cada tabela
 - [x] Definir limpeza e normalização básica
 - [x] Documentar campos e validações em `models/staging/staging.yml`
 - [x] Implementar testes de qualidade básicos (`unique`, `not_null`, `relationships`)
-- [ ] Expandir cobertura de testes e modelos de dados adicionais
+- [ ] EXTRA: Expandir cobertura de testes e modelos de dados adicionais
+  - [ ] Adicionar testes de valores esperados (`accepted_values`)
+  - [ ] Padronizar tipos de dados (datas, números, textos)
+  - [ ] Gerar documentação automática (`dbt docs`)
 
-### 📋 Fase 3: Camada Analytics (Planejado)
-- [ ] Criar fact tables (`fct_orders`, `fct_order_items`)
+### 📋 Fase 3: Camada Analytics (Em Andamento)
+- [x] Criar fact tables (`fct_orders`, `fct_order_items`)
 - [ ] Criar dimension tables (`dim_customers`, `dim_products`, `dim_employees`)
 - [ ] Implementar agregações por período
 - [ ] Testes de integridade referencial
