@@ -326,7 +326,7 @@ dbt parse                # Valida sintaxe dos modelos
 
 ### 📋 Fase 3: Camada Analytics (Em Andamento)
 - [x] Criar fact tables (`fct_orders`, `fct_order_items`)
-- [ ] Criar dimension tables (`dim_customers`, `dim_products`, `dim_employees`)
+- [x] Criar dimension tables (`dim_customers`, `dim_products`, `dim_employees`)
 - [ ] Implementar agregações por período
 - [ ] Testes de integridade referencial
 

@@ -1,0 +1,62 @@
+version: 2
+
+models:
+
+  - name: dim_customers
+
+    description: 
+      Dimensão de clientes utilizada para análise
+      comercial e relacionamento.
+
+    columns:
+      - name: customer_id
+        description: "Chave única do cliente."
+
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_products
+
+    description: 
+      Dimensão de produtos enriquecida
+      com categorias e fornecedores.
+
+    columns:
+      - name: product_id
+
+        tests:
+          - unique
+          - not_null
+
+      - name: category_id
+
+        tests:
+          - relationships:
+              to: ref('stg_categories')
+              field: category_id
+
+      - name: supplier_id
+
+        tests:
+          - relationships:
+              to: ref('stg_suppliers')
+              field: supplier_id
+      
+  - name: dim_categories
+
+    columns:
+      - name: category_id
+
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_employees
+
+    columns:
+      - name: employee_id
+
+        tests:
+          - unique
+          - not_null

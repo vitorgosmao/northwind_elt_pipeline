@@ -33,8 +33,13 @@ models:
   northwind_dbt:
 
     staging:
+      +schema: staging
       +materialized: view
 
     analytics:
+      +schema: analytics
       +materialized: table
 
+      dimensions:
+        +tags:
+          - dimensions
