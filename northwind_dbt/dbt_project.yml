@@ -41,3 +41,7 @@ models:
       dimensions:
         +tags:
           - dimensions
+
+      aggregates:
+        +tags:
+          - aggregates

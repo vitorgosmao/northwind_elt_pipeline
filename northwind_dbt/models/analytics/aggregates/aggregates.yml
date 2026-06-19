@@ -1,0 +1,18 @@
+version: 2
+
+models:
+
+  - name: agg_monthly_sales
+
+    description: 
+      Agregação mensal de vendas derivada
+      da tabela fct_order_items.
+
+    columns:
+      - name: sales_month
+        tests:
+          - not_null
+
+      - name: total_revenue
+        tests:
+          - not_null
