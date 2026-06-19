@@ -330,13 +330,13 @@ dbt parse                # Valida sintaxe dos modelos
 - [x] Implementar agregações por período
 - [x] Testes de integridade referencial
 
-### 📋 Fase 4: Marts (Em Andamento)
-- [ ] Criar métricas de vendas (`mart_sales_summary`)
-- [ ] Criar KPIs de clientes (`mart_customer_metrics`)
-- [ ] Criar análises por produto e região (`mart_product_performance` e `mart_sales_by_region`)
-- [ ] Otimizar para performance em BI
+### 📋 Fase 4: Marts (Concluída)
+- [x] Criar métricas de vendas (`mart_sales_summary`)
+- [x] Criar KPIs de clientes (`mart_customer_metrics`)
+- [x] Criar análises por produto e região (`mart_product_performance` e `mart_sales_by_region`)
+- [x] Otimizar para performance em BI
 
-### 📋 Fase 5: Documentação e Testes (Planejado)
+### 📋 Fase 5: Documentação e Testes (Em Andamento)
 - [ ] Documentação completa de modelos
 - [ ] Suite de testes abrangente
 - [ ] Snapshots para auditoria de dimensões

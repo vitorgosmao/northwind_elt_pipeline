@@ -1,0 +1,73 @@
+version: 2
+
+models:
+
+  - name: mart_sales_summary
+    description: "Resumo mensal de vendas consolidado para BI"
+
+    columns:
+
+      - name: sales_month
+        tests:
+          - not_null
+
+      - name: total_revenue
+        tests:
+          - not_null
+
+      - name: total_orders
+        tests:
+          - not_null
+
+  - name: mart_customer_metrics
+    description: "Métricas de comportamento de clientes"
+
+    columns:
+
+      - name: customer_id
+        tests:
+          - not_null
+          - unique
+
+      - name: total_spent
+        tests:
+          - not_null
+
+      - name: total_orders
+        tests:
+          - not_null
+
+  - name: mart_product_performance
+    description: "Performance de vendas por produto"
+
+    columns:
+
+      - name: product_id
+        tests:
+          - not_null
+          - unique
+
+      - name: total_revenue
+        tests:
+          - not_null
+
+      - name: total_quantity_sold
+        tests:
+          - not_null
+
+  - name: mart_sales_by_region
+    description: "Performance de vendas por região geográfica"
+
+    columns:
+
+      - name: country
+        tests:
+          - not_null
+
+      - name: total_revenue
+        tests:
+          - not_null
+
+      - name: total_orders
+        tests:
+          - not_null

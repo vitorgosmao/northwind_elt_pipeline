@@ -42,6 +42,5 @@ models:
         +tags:
           - dimensions
 
-      aggregates:
-        +tags:
-          - aggregates
+    marts:
+      +materialized: table
