@@ -1,11 +1,7 @@
 version: 2
 
 models:
-
-  # ==========================
-  # ORDERS
-  # ==========================
-
+# ORDERS 
   - name: stg_orders
     description: "Pedidos realizados pelos clientes."
 
@@ -16,6 +12,10 @@ models:
         tests:
           - unique
           - not_null
+          - relationships:
+              to: ref('stg_order_details')
+              field: order_id
+
 
       - name: customer_id
         description: "Cliente responsável pelo pedido."
@@ -33,11 +33,7 @@ models:
               to: ref('stg_employees')
               field: employee_id
 
-
-  # ==========================
-  # ORDER DETAILS
-  # ==========================
-
+# ORDER DETAILS
   - name: stg_order_details
     description: "Produtos associados aos pedidos."
 
@@ -60,17 +56,21 @@ models:
               to: ref('stg_products')
               field: product_id
 
+      - name: unit_price
+        description: "Valor do produto"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
 
       - name: quantity
         description: "Quantidade vendida do produto."
         tests:
           - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
 
-
-  # ==========================
-  # CUSTOMERS
-  # ==========================
-
+# CUSTOMERS
   - name: stg_customers
     description: "Cadastro dos clientes."
 
@@ -86,12 +86,7 @@ models:
       - name: country
         description: "País do cliente."
 
-
-
-  # ==========================
-  # PRODUCTS
-  # ==========================
-
+# PRODUCTS
   - name: stg_products
     description: "Catálogo de produtos."
 
@@ -119,11 +114,7 @@ models:
               to: ref('stg_suppliers')
               field: supplier_id
 
-
-  # ==========================
-  # EMPLOYEES
-  # ==========================
-
+# EMPLOYEES
   - name: stg_employees
     description: "Funcionários da empresa."
 
@@ -135,11 +126,7 @@ models:
           - unique
           - not_null
 
-
-  # ==========================
-  # CATEGORIES
-  # ==========================
-
+# CATEGORIES
   - name: stg_categories
     description: "Categorias dos produtos."
 
@@ -151,11 +138,7 @@ models:
           - unique
           - not_null
 
-
-  # ==========================
-  # SUPPLIERS
-  # ==========================
-
+# SUPPLIERS
   - name: stg_suppliers
     description: "Fornecedores dos produtos."
 
@@ -167,11 +150,7 @@ models:
           - unique
           - not_null
 
-
-  # ==========================
-  # SHIPPERS
-  # ==========================
-
+# SHIPPERS
   - name: stg_shippers
     description: "Empresas responsáveis pelo transporte."
 

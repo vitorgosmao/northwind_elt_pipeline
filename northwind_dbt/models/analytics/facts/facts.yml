@@ -21,7 +21,7 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_orders')
+              to: ref('fct_orders')
               field: order_id
 
 
@@ -30,11 +30,11 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_products')
+              to: ref('dim_products')
               field: product_id
 
 
-      - name: sales_amount
+      - name: sale_amount
         description: "Valor total calculado do item vendido."
         tests:
           - not_null
@@ -59,7 +59,7 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('stg_customers')
+              to: ref('dim_customers')
               field: customer_id
 
 
@@ -67,11 +67,11 @@ models:
         description: "Funcionário responsável pelo pedido."
         tests:
           - relationships:
-              to: ref('stg_employees')
+              to: ref('dim_employees')
               field: employee_id
 
 
-      - name: total_sales
+      - name: total_amount
         description: "Valor total do pedido."
         tests:
           - not_null

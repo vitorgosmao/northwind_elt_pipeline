@@ -5,5 +5,5 @@ select
     sum(quantity) as total_quantity,
     sum(sale_amount) as total_revenue
 from 
-    {{ ref('fct_order  _items') }}
+    {{ ref('fct_order_items') }}
 group by 1

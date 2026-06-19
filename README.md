@@ -324,16 +324,16 @@ dbt parse                # Valida sintaxe dos modelos
   - [ ] Padronizar tipos de dados (datas, números, textos)
   - [ ] Gerar documentação automática (`dbt docs`)
 
-### 📋 Fase 3: Camada Analytics (Em Andamento)
+### 📋 Fase 3: Camada Analytics (Concluída)
 - [x] Criar fact tables (`fct_orders`, `fct_order_items`)
 - [x] Criar dimension tables (`dim_customers`, `dim_products`, `dim_employees`)
-- [ ] Implementar agregações por período
-- [ ] Testes de integridade referencial
+- [x] Implementar agregações por período
+- [x] Testes de integridade referencial
 
-### 📋 Fase 4: Camada Gold (Planejado)
-- [ ] Criar métricas de vendas (`gold_sales_summary`)
-- [ ] Criar KPIs de clientes (`gold_customer_metrics`)
-- [ ] Criar análises por produto e região
+### 📋 Fase 4: Marts (Em Andamento)
+- [ ] Criar métricas de vendas (`mart_sales_summary`)
+- [ ] Criar KPIs de clientes (`mart_customer_metrics`)
+- [ ] Criar análises por produto e região (`mart_product_performance` e `mart_sales_by_region`)
 - [ ] Otimizar para performance em BI
 
 ### 📋 Fase 5: Documentação e Testes (Planejado)
