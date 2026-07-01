@@ -44,8 +44,8 @@ select
     coalesce(om.average_item_value,0) as average_item_value,
     -- indicadores
     case
-        when o.shipped_date is null then 'Pending'
-        when o.shipped_date <= o.required_date then 'On Time' else 'Late'
+        when o.shipped_date is null then 'pending'
+        when o.shipped_date <= o.required_date then 'on time' else 'late'
     end as shipping_status
 from orders o
     left join order_metrics om

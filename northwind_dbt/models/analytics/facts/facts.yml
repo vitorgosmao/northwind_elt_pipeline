@@ -3,7 +3,6 @@ version: 2
 models:
 
   - name: fct_order_items
-
     description: 
       Fato de vendas no nível de item.
       Cada registro representa um produto vendido
@@ -40,7 +39,6 @@ models:
           - not_null
 
   - name: fct_orders
-
     description: 
       Fato de pedidos contendo métricas agregadas
       no nível do pedido.
@@ -48,14 +46,14 @@ models:
     columns:
 
       - name: order_id
-        description: "Identificador único do pedido."
+        description: Identificador único do pedido.
         tests:
           - unique
           - not_null
 
 
       - name: customer_id
-        description: "Cliente responsável pelo pedido."
+        description: Cliente responsável pelo pedido.
         tests:
           - not_null
           - relationships:
@@ -64,7 +62,7 @@ models:
 
 
       - name: employee_id
-        description: "Funcionário responsável pelo pedido."
+        description: Funcionário responsável pelo pedido.
         tests:
           - relationships:
               to: ref('dim_employees')
@@ -72,6 +70,15 @@ models:
 
 
       - name: total_amount
-        description: "Valor total do pedido."
+        description: Valor total do pedido.
         tests:
           - not_null
+
+      - name: shipping_status
+        description: Status referente ao envio dos produtos. 
+        tests:
+          - accepted_values:
+              values:
+              - pending 
+              - on time 
+              - late

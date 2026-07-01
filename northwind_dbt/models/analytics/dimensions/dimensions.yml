@@ -3,7 +3,6 @@ version: 2
 models:
 
   - name: dim_customers
-
     description: 
       Dimensão de clientes utilizada para análise
       comercial e relacionamento.
@@ -17,7 +16,6 @@ models:
           - not_null
 
   - name: dim_products
-
     description: 
       Dimensão de produtos enriquecida
       com categorias e fornecedores.
@@ -44,6 +42,10 @@ models:
               field: supplier_id
       
   - name: dim_categories
+    description: 
+      Dimensão de categorias de produtos.
+      Contém informações descritivas utilizadas para agrupar e analisar
+      produtos por categoria. 
 
     columns:
       - name: category_id
@@ -53,6 +55,10 @@ models:
           - not_null
 
   - name: dim_employees
+    description: 
+      Dimensão de funcionários responsáveis pelo processamento dos pedidos.
+      Contém informações cadastrais dos colaboradores utilizadas para análises
+      de desempenho comercial e distribuição de vendas.
 
     columns:
       - name: employee_id

@@ -11,7 +11,7 @@ Este projeto implementa um pipeline ELT completo com as seguintes característic
 - **Fonte de dados**: Base de dados Northwind (PostgreSQL)
 - **Ferramenta de transformação**: dbt (Data Build Tool)
 - **Infraestrutura**: Docker Compose para fácil deploy
-- **Arquitetura em 3 camadas**: Staging → Analytics → Gold
+- **Arquitetura em 3 camadas**: Staging → Analytics → Mart
 - **Objetivo**: Preparar dados para análise de negócios e BI
 
 ### 🎯 Objetivo do Projeto
@@ -51,7 +51,7 @@ Criar um ambiente reproduzível e escalável para:
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  GOLD (gold_*)                                              │
+│  Mart (mart_*)                                              │
 │  • Métricas de negócio finais                               │
 │  • Agregações e resumos prontos para BI                     │
 │  • Otimizado para dashboards e relatórios                   │
@@ -88,7 +88,7 @@ Segunda camada, onde dados são transformados em estruturas analíticas:
 
 **Materialização**: TABLE (materializado para performance)
 
-### 🟡 **Gold** (gold_*)
+### 🟡 **Mart** (mart_*)
 Terceira camada, contendo métricas finais prontas para BI:
 - Agregações por período (vendas mensais, anuais)
 - KPIs de negócio (receita, crescimento, retenção)
@@ -203,7 +203,7 @@ dbt debug
 ```bash
 # Dentro do diretório northwind_dbt/
 
-# Rodar todos os modelos (staging → analytics → gold)
+# Rodar todos os modelos (staging → analytics → mart)
 dbt run
 
 # Rodar apenas modelos staging
@@ -246,10 +246,10 @@ northwind_elt_pipeline/
     │   │   ├── dim_customers.sql
     │   │   └── ... (fct_*, dim_*)
     │   │
-    │   └── gold/                   # Camada 3: Métricas finais para BI
-    │       ├── gold_sales_summary.sql
-    │       ├── gold_customer_metrics.sql
-    │       └── ... (gold_*)
+    │   └── mart/                   # Camada 3: Métricas finais para BI
+    │       ├── mart_sales_summary.sql
+    │       ├── mart_customer_metrics.sql
+    │       └── ... (mart_*)
     │
     ├── tests/                      # Testes de qualidade de dados
     │   └── (Testes genericidade e customizados)
@@ -280,7 +280,7 @@ northwind_elt_pipeline/
 
 ### Ciclo de Trabalho Típico
 
-1. **Adicionar modelo SQL** em `models/staging/`, `models/analytics/` ou `models/gold/`
+1. **Adicionar modelo SQL** em `models/staging/`, `models/analytics/` ou `models/mart/`
 2. **Definir testes** em `tests/` ou via YAML (properties)
 3. **Rodar dbt**:
    ```bash
@@ -312,7 +312,7 @@ dbt parse                # Valida sintaxe dos modelos
 - [x] Configuração do Docker Compose com PostgreSQL
 - [x] Inicialização do projeto dbt
 - [x] Mapeamento das 11 tabelas do Northwind (sources.yml)
-- [x] Estrutura de diretórios (staging, analytics, gold)
+- [x] Estrutura de diretórios (staging, analytics, mart)
 
 ### 📋 Fase 2: Camada Staging (Concluída)
 - [x] Criar modelos `stg_*` para cada tabela
@@ -322,7 +322,7 @@ dbt parse                # Valida sintaxe dos modelos
 - [ ] EXTRA: Expandir cobertura de testes e modelos de dados adicionais
   - [ ] Adicionar testes de valores esperados (`accepted_values`)
   - [ ] Padronizar tipos de dados (datas, números, textos)
-  - [ ] Gerar documentação automática (`dbt docs`)
+  - [x] Gerar documentação automática (`dbt docs`)
 
 ### 📋 Fase 3: Camada Analytics (Concluída)
 - [x] Criar fact tables (`fct_orders`, `fct_order_items`)
@@ -337,10 +337,9 @@ dbt parse                # Valida sintaxe dos modelos
 - [x] Otimizar para performance em BI
 
 ### 📋 Fase 5: Documentação e Testes (Em Andamento)
-- [ ] Documentação completa de modelos
-- [ ] Suite de testes abrangente
-- [ ] Snapshots para auditoria de dimensões
-- [ ] Macros customizadas reutilizáveis
+- [x] Documentação completa de modelos
+- [x] Suite de testes abrangente
+- [x] Snapshots para auditoria de dimensões
 
 ### 📋 Fase 6: BI e Visualização (Futuro)
 - [ ] Integração com ferramentas de BI (Metabase, Superset)
@@ -362,7 +361,7 @@ dbt parse                # Valida sintaxe dos modelos
 Para adicionar novos modelos ou melhorias:
 
 1. Criar branch: `git checkout -b feature/novo-modelo`
-2. Implementar no diretório apropriado (`staging/`, `analytics/`, `gold/`)
+2. Implementar no diretório apropriado (`staging/`, `analytics/`, `mart/`)
 3. Adicionar testes e documentação
 4. Rodar `dbt run && dbt test` localmente
 5. Submeter pull request
