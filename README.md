@@ -322,16 +322,15 @@ A documentação gerada com `dbt docs` foi validada e está disponível com a na
 
 ![Lineage graph do projeto dbt](lineage%20graph.jpg)
 
-### 🎬 Vídeo de apresentação do dashboard
+### 🎬 Dashboard de apresentação
 
-A seguir, apresentação do dashboard construído com os indicadores e visualizações do projeto Northwind:
+A imagem abaixo mostra uma visão geral do dashboard construído com os indicadores e visualizações do projeto Northwind:
 
-<video width="100%" controls>
-  <source src="./Dashboard%20Northwind.mp4" type="video/mp4">
-  Seu navegador não suporta reprodução de vídeo embutido.
-</video>
+<a href="./Dashboard%20Northwind.mp4" download>
+  <img src="./dashboard.png" alt="Dashboard Northwind" width="100%">
+</a>
 
-Você também pode abrir o vídeo diretamente em: [Dashboard Northwind.mp4](Dashboard%20Northwind.mp4)
+Clique na imagem para baixar o vídeo de apresentação: [Dashboard Northwind.mp4](Dashboard%20Northwind.mp4)
 
 ---
 
