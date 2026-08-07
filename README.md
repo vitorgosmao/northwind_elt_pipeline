@@ -306,6 +306,34 @@ dbt parse                # Valida sintaxe dos modelos
 
 ---
 
+## 📸 Evidências da Documentação dbt
+
+A documentação gerada com `dbt docs` foi validada e está disponível com a navegação dos modelos, fontes e lineage do projeto.
+
+### Página inicial da documentação
+
+![Homepage da documentação dbt](dbt%20docs%20homepage.jpg)
+
+### Detalhes de um modelo mart
+
+![Detalhes do modelo mart_product_performance](dbt%20docs%20mart.jpg)
+
+### Lineage graph dos modelos
+
+![Lineage graph do projeto dbt](lineage%20graph.jpg)
+
+### 🎬 Dashboard de apresentação
+
+A imagem abaixo mostra uma visão geral do dashboard construído com os indicadores e visualizações do projeto Northwind:
+
+<a href="./Dashboard%20Northwind.mp4" download>
+  <img src="./dashboard.png" alt="Dashboard Northwind" width="100%">
+</a>
+
+Clique na imagem para baixar o vídeo de apresentação: [Dashboard Northwind.mp4](Dashboard%20Northwind.mp4)
+
+---
+
 ## 🎯 Roadmap
 
 ### ✅ Fase 1: Estrutura Base (Concluída)
@@ -342,8 +370,8 @@ dbt parse                # Valida sintaxe dos modelos
 - [x] Snapshots para auditoria de dimensões
 
 ### 📋 Fase 6: BI e Visualização (Futuro)
-- [ ] Integração com ferramentas de BI (Metabase, Superset)
-- [ ] Dashboards iniciais
+- [x] Integração com ferramentas de BI (Metabase, Superset)
+- [x] Dashboards iniciais
 - [ ] Alertas de qualidade de dados
 
 ---
