@@ -1,27 +1,142 @@
+# Configuracao compartilhada pelos tres servicos do Airflow.
+x-airflow-common: &airflow-common
+  build:
+    context: ./airflow
+  # UID do host: sem isso o airflow (UID 50000) nao escreve nos bind mounts
+  # (./airflow/logs e northwind_dbt/target), pertencentes ao seu usuario.
+  user: "${AIRFLOW_UID:-50000}:0"
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-db/${AIRFLOW_DB}
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+    # dbt: profile versionado no projeto + host apontando para o servico "db"
+    DBT_PROFILES_DIR: /opt/airflow/northwind_dbt
+    POSTGRES_HOST: db
+    POSTGRES_DB: ${POSTGRES_DB}
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./northwind_dbt:/opt/airflow/northwind_dbt
+  networks:
+    - northwind
+
 services:
   db:
     container_name: db
-    image: postgres:latest
+    image: postgres:18
     environment:
-      POSTGRES_DB: northwind
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgresql_bin:/usr/lib/postgresql
-      - postgresql_data:/var/lib/postgresql  # Remova o "/data" do final aqui
+      # No Postgres 18 o PGDATA e /var/lib/postgresql/18/docker, por isso
+      # o volume monta o diretorio pai (sem "/data" no final).
+      - postgresql_data:/var/lib/postgresql
       - ./northwind.sql:/docker-entrypoint-initdb.d/northwind.sql
       - ./files:/files
     ports:
       - 5432:5432
     networks:
-      - db
+      - northwind
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # Banco de metadados do Airflow (separado do banco de negocio)
+  airflow-db:
+    container_name: airflow-db
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${AIRFLOW_DB}
+      POSTGRES_USER: ${AIRFLOW_DB_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
+    volumes:
+      - airflow_db_data:/var/lib/postgresql
+    networks:
+      - northwind
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AIRFLOW_DB_USER} -d ${AIRFLOW_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # Migra o schema e cria o admin. Roda uma vez e sai.
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    # "bash" e tratado pelo entrypoint da imagem, que preserva o ajuste de UID.
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        airflow db migrate
+        airflow users create \
+          --username "${AIRFLOW_ADMIN_USER}" \
+          --password "${AIRFLOW_ADMIN_PASSWORD}" \
+          --firstname Vitor --lastname Gosmao \
+          --role Admin --email admin@example.com \
+          || echo "usuario ja existe, seguindo"
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - 8080:8080
+    depends_on:
+      # forma curta espera apenas o container iniciar; precisamos do fim do init
+      airflow-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
 
 networks:
-  db:
+  northwind:
     driver: bridge
 
 volumes:
   postgresql_data:
     driver: local
   postgresql_bin:
+    driver: local
+  airflow_db_data:
     driver: local
