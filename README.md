@@ -1,407 +1,329 @@
 # 📊 Northwind ELT Pipeline
 
-Um pipeline de Engenharia de Dados (ELT) que extrai dados do banco **Northwind**, transforma e carrega em três camadas de dados tratados utilizando **dbt (data build tool)**.
+Pipeline de Engenharia de Dados (ELT) sobre o banco **Northwind**: transforma os dados brutos em três camadas modeladas com **dbt**, orquestradas pelo **Apache Airflow**, tudo containerizado com Docker Compose.
+
+**Stack**: PostgreSQL 18 · dbt-core 1.12 · Apache Airflow 2.9.3 · Docker Compose
 
 ---
 
-## 📋 Visão Geral
+## 🏗️ Arquitetura
 
-Este projeto implementa um pipeline ELT completo com as seguintes características:
-
-- **Fonte de dados**: Base de dados Northwind (PostgreSQL)
-- **Ferramenta de transformação**: dbt (Data Build Tool)
-- **Infraestrutura**: Docker Compose para fácil deploy
-- **Arquitetura em 3 camadas**: Staging → Analytics → Mart
-- **Objetivo**: Preparar dados para análise de negócios e BI
-
-### 🎯 Objetivo do Projeto
-
-Criar um ambiente reproduzível e escalável para:
-1. **Extração**: Carregar dados brutos do banco Northwind
-2. **Transformação**: Limpar, normalizar e estruturar dados em múltiplas camadas
-3. **Carregamento**: Disponibilizar dados tratados para análise e BI
-
----
-
-## 🏗️ Arquitetura de Dados
+### Infraestrutura (4 containers)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                  PostgreSQL (Northwind)                     │
-│            (11 tabelas fonte de negócio)                    │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  STAGING (stg_*)                                            │
-│  • Limpeza e normalização básica                            │
-│  • Renomeação de colunas padronizada                        │
-│  • Validação de tipos de dados                              │
-│  • Remoção de duplicatas e nulos                            │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  ANALYTICS (fct_*, dim_*)                                   │
-│  • Modelos analíticos transformados                         │
-│  • Estrutura dimensional/normalizada                        │
-│  • Agregações e juncões de negócio                          │
-│  • Pronto para análise exploratória                         │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Mart (mart_*)                                              │
-│  • Métricas de negócio finais                               │
-│  • Agregações e resumos prontos para BI                     │
-│  • Otimizado para dashboards e relatórios                   │
-│  • Consumível por ferramentas de visualização               │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                      rede "northwind"                        │
+│                                                              │
+│   db                            airflow-db                   │
+│   PostgreSQL 18                 PostgreSQL 18                │
+│   dados Northwind + modelos     metadados do Airflow         │
+│        ▲                              ▲                      │
+│        │ dbt lê e escreve             │ histórico de runs    │
+│        │                              │                      │
+│   ┌────┴──────────────────────────────┴────┐                │
+│   │  airflow-scheduler                      │                │
+│   │  executa as tasks → chama o dbt         │                │
+│   ├─────────────────────────────────────────┤                │
+│   │  airflow-webserver → UI :8080           │                │
+│   └─────────────────────────────────────────┘                │
+└──────────────────────────────────────────────────────────────┘
+         ▲                                  ▲
+    :5432 (dbt local, BI)             :8080 (navegador)
 ```
 
----
+Os dois bancos são separados de propósito: `db` guarda os dados de negócio, `airflow-db` guarda apenas o controle interno do Airflow. O dbt roda num **venv isolado** (`/opt/dbt_venv`) dentro da imagem do Airflow, para não disputar dependências com ele.
 
-## 📚 Camadas de Dados
+### Fluxo dos dados
 
-### 🔷 **Staging** (stg_*)
-Primeira camada de transformação, responsável por:
-- Cópia bruta das tabelas com limpeza inicial
-- Renomeação padronizada de colunas (snake_case)
-- Correção de tipos de dados e formatos
-- Remoção de duplicatas e registros inválidos
-- Documentação de campos e definição de testes em YAML
-- Relações de integridade e qualidade declaradas em `models/staging/staging.yml`
+```
+11 tabelas Northwind (schema public)
+            │
+            ▼
+   STAGING (stg_*)  ·  11 modelos  ·  VIEW
+   limpeza, snake_case, tipos, deduplicação
+            │
+            ▼
+   ANALYTICS (fct_*, dim_*)  ·  6 modelos  ·  TABLE
+   modelo dimensional: fatos e dimensões
+            │
+            ▼
+   MARTS (mart_*)  ·  4 modelos  ·  TABLE
+   KPIs agregados, prontos para BI
+```
 
-**Materialização**: VIEW (rápida, sem duplicação)
-
-### 🔶 **Analytics** (fct_*, dim_*)
-Segunda camada, onde dados são transformados em estruturas analíticas:
-- **Fact tables** (fct_*): Tabelas de eventos e transações
-  - `fct_orders`: Pedidos com métricas de vendas
-  - `fct_order_items`: Itens de pedido com detalhes de produto
-  
-- **Dimension tables** (dim_*): Tabelas de contexto e atributos
-  - `dim_customers`: Informações de clientes
-  - `dim_products`: Catálogo de produtos
-  - `dim_employees`: Dados de funcionários
-  - E outras dimensões de contexto
-
-**Materialização**: TABLE (materializado para performance)
-
-### 🟡 **Mart** (mart_*)
-Terceira camada, contendo métricas finais prontas para BI:
-- Agregações por período (vendas mensais, anuais)
-- KPIs de negócio (receita, crescimento, retenção)
-- Análises por segmento (clientes, produtos, regiões)
-- Resumos para dashboards e relatórios executivos
-
-**Materialização**: TABLE (otimizado para consultas rápidas)
+Total: **21 modelos** e **66 testes**. Todos materializados no schema `source` do banco `northwind`.
 
 ---
 
-## 🗂️ Tabelas-Fonte do Northwind
+## 📚 Camadas
 
-O banco de dados Northwind contém 11 tabelas principais que alimentam o pipeline:
+### 🔷 Staging (`stg_*`) — VIEW
 
-| # | Tabela | Descrição | Registros Aprox. | Papel |
-|---|--------|-----------|-----------------|------|
-| 1 | **orders** | Pedidos realizados | ~800 | Principal (fact) |
-| 2 | **order_details** | Itens dentro dos pedidos | ~2.600 | Principal (fact) |
-| 3 | **customers** | Informações de clientes | ~90 | Dimensão |
-| 4 | **products** | Catálogo de produtos | ~77 | Dimensão |
-| 5 | **employees** | Dados de funcionários | ~9 | Dimensão |
-| 6 | **categories** | Categorias de produtos | ~8 | Dimensão |
-| 7 | **suppliers** | Fornecedores | ~29 | Dimensão |
-| 8 | **territories** | Regiões de vendas | ~53 | Dimensão |
-| 9 | **employee_territories** | Atribuição de vendedores a regiões | ~49 | Associação |
-| 10 | **region** | Regiões agrupadas | ~4 | Dimensão |
-| 11 | **shippers** | Transportadoras | ~3 | Dimensão |
+Cópia limpa de cada tabela-fonte: renomeação para snake_case, correção de tipos, remoção de duplicatas e registros inválidos. Documentação e testes declarados em `models/staging/staging.yml`; fontes em `models/staging/sources.yml`.
 
-**Relacionamentos principais**:
-- `orders` ← JOIN → `customers`, `employees`, `shippers`
-- `order_details` ← JOIN → `orders`, `products`
-- `products` ← JOIN → `suppliers`, `categories`
-- `employees` ← JOIN → `employee_territories`, `territories`
+Um modelo por tabela-fonte: `stg_orders`, `stg_order_details`, `stg_customers`, `stg_products`, `stg_employees`, `stg_categories`, `stg_suppliers`, `stg_territories`, `stg_employee_territories`, `stg_region`, `stg_shippers`.
+
+### 🔶 Analytics (`fct_*`, `dim_*`) — TABLE
+
+Modelo dimensional construído sobre o staging.
+
+| Tipo | Modelos |
+|---|---|
+| Fatos | `fct_orders`, `fct_order_items` |
+| Dimensões | `dim_customers`, `dim_products`, `dim_employees`, `dim_categories` |
+
+As dimensões carregam a tag `dimensions`, permitindo `dbt run --select tag:dimensions`.
+
+### 🟡 Marts (`mart_*`) — TABLE
+
+Métricas finais, agregadas e otimizadas para consumo em BI:
+
+- `mart_sales_summary` — resumo de vendas por período
+- `mart_customer_metrics` — KPIs de clientes
+- `mart_product_performance` — desempenho por produto
+- `mart_sales_by_region` — vendas por região
 
 ---
 
-## 🚀 Pré-requisitos
+## 🗂️ Tabelas-fonte
 
-Para rodar este projeto, você precisa de:
+| Tabela | Descrição | Registros | Papel |
+|--------|-----------|----------:|-------|
+| **orders** | Pedidos realizados | 830 | Fato |
+| **order_details** | Itens dos pedidos | 2.155 | Fato |
+| **customers** | Clientes | 91 | Dimensão |
+| **products** | Catálogo de produtos | 77 | Dimensão |
+| **employees** | Funcionários | 9 | Dimensão |
+| **categories** | Categorias de produtos | 8 | Dimensão |
+| **suppliers** | Fornecedores | 29 | Dimensão |
+| **territories** | Territórios de vendas | 53 | Dimensão |
+| **employee_territories** | Vendedor ↔ território | 49 | Associação |
+| **region** | Regiões | 4 | Dimensão |
+| **shippers** | Transportadoras | 6 | Dimensão |
 
-- **Docker** e **Docker Compose** (v20.10+)
-- **Python** (v3.8+)
-- **dbt-core** (v1.5+) e **dbt-postgres** adapter
-- **Git**
+**Relacionamentos principais**
+- `orders` → `customers`, `employees`, `shippers`
+- `order_details` → `orders`, `products`
+- `products` → `suppliers`, `categories`
+- `employees` → `employee_territories` → `territories` → `region`
 
-### Instalação de Dependências (Local)
+---
+
+## 🚀 Como rodar
+
+### Pré-requisitos
+
+Docker e Docker Compose v2 (`docker compose`, sem hífen). Para desenvolvimento local do dbt, também Python 3.9+.
+
+### Primeira execução
 
 ```bash
-# Criar ambiente virtual Python
+git clone <repo> && cd northwind_elt_pipeline
+
+cp .env.example .env
+# Edite o .env: preencha AIRFLOW_UID com o resultado de `id -u`
+# e gere as duas chaves conforme os comentários do arquivo.
+
+docker compose up -d --build
+```
+
+O `--build` constrói a imagem do Airflow com o dbt dentro — necessário só na primeira vez ou ao alterar `airflow/Dockerfile` / `airflow/requirements.txt`. O banco Northwind é populado automaticamente por `northwind.sql` na criação do volume.
+
+### Nas próximas vezes
+
+```bash
+docker compose up -d
+docker compose ps        # os 4 containers devem estar "healthy"
+```
+
+### Executando o pipeline pelo Airflow
+
+1. Acesse **http://localhost:8080** — usuário `admin`, senha `admin` (definidos no `.env`)
+2. Despause a DAG `dbt_northwind` no toggle à esquerda do nome
+3. Clique em ▶ para disparar, ou aguarde o agendamento diário (**06:00**)
+4. Acompanhe em **Graph** → clique numa task → **Logs**
+
+A DAG (`airflow/dags/dbt_northwind.py`) executa em sequência: `dbt debug` → `dbt deps` → `dbt run` → `dbt test`. Se uma task falha, as seguintes não rodam.
+
+Equivalente por linha de comando:
+
+```bash
+# dispara e deixa o scheduler executar
+docker compose exec airflow-scheduler airflow dags trigger dbt_northwind
+
+# ou roda a DAG inteira de forma síncrona, com a saída no terminal
+docker compose exec airflow-scheduler airflow dags test dbt_northwind
+```
+
+Alterações no arquivo da DAG são recarregadas pelo scheduler em ~30s, sem rebuild.
+
+### Desenvolvendo modelos localmente
+
+Para o ciclo curto de escrever e testar um modelo, rodar o dbt direto na máquina é mais rápido que passar pelo Airflow. Requer apenas o container `db` de pé.
+
+```bash
 python -m venv venv
-source venv/bin/activate  # No Windows: venv\Scripts\activate
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r airflow/requirements.txt
 
-# Instalar dbt e dependências
-pip install dbt-core dbt-postgres
-```
-
----
-
-## 🛠️ Setup e Execução
-
-### 1️⃣ Iniciar a Infraestrutura (Docker)
-
-```bash
-# Na raiz do projeto
-docker-compose up -d
-
-# Verificar se o banco está rodando
-docker ps  # Deve mostrar container "db" como "Up"
-```
-
-O banco de dados PostgreSQL será inicializado com:
-- **Host**: localhost
-- **Porta**: 5432
-- **Database**: northwind
-- **Usuário**: postgres
-- **Senha**: postgres
-
-### 2️⃣ Configurar dbt
-
-Criar arquivo `~/.dbt/profiles.yml` (se não existir):
-
-```yaml
-northwind_dbt:
-  outputs:
-    dev:
-      type: postgres
-      host: localhost
-      user: postgres
-      password: postgres
-      port: 5432
-      dbname: northwind
-      schema: public
-      threads: 4
-      keepalives_idle: 0
-
-  target: dev
-```
-
-### 3️⃣ Validar Conexão com dbt
-
-```bash
 cd northwind_dbt
-
-# Testar conexão
-dbt debug
-
-# Deve exibir: "Connection test: [✓ ok]"
+dbt debug                          # deve exibir "All checks passed!"
+dbt deps
+dbt run
+dbt test
 ```
 
-### 4️⃣ Executar o Pipeline
+### Conexão do dbt
+
+O `northwind_dbt/profiles.yml` é versionado com o projeto e resolvido por variáveis de ambiente, servindo aos dois contextos sem alteração:
+
+| Contexto | `POSTGRES_HOST` |
+|---|---|
+| Máquina local (venv) | não definido → `localhost` |
+| Dentro do Airflow | `db` (nome do serviço) |
+
+Não é necessário criar `~/.dbt/profiles.yml`; o profile do projeto tem precedência quando você roda de dentro de `northwind_dbt/`.
+
+### Ligar e desligar
 
 ```bash
-# Dentro do diretório northwind_dbt/
-
-# Rodar todos os modelos (staging → analytics → mart)
-dbt run
-
-# Rodar apenas modelos staging
-dbt run --models tag:staging
-
-# Rodar com teste de dados
-dbt test
-
-# Gerar documentação
-dbt docs generate
-dbt docs serve  # Abre documentação em http://localhost:8000
+docker compose stop     # desliga preservando os dados
+docker compose down     # remove containers, preserva os volumes
+docker compose down -v  # ⚠️ apaga os dados — o Northwind é recriado do zero
 ```
 
 ---
 
-## 📁 Estrutura de Diretórios
+## 📁 Estrutura de diretórios
 
 ```
 northwind_elt_pipeline/
-├── docker-compose.yml              # Configuração do banco PostgreSQL
-├── northwind.sql                   # Script inicial de dados Northwind
-├── README.md                       # Este arquivo
-├── files/                          # Arquivos de suporte
-├── logs/                           # Logs de execução
+├── docker-compose.yml          # os 4 containers
+├── .env / .env.example         # credenciais e AIRFLOW_UID (.env não vai para o git)
+├── northwind.sql               # carga inicial do Northwind
 │
-└── northwind_dbt/                  # Projeto dbt
-    ├── dbt_project.yml             # Configuração do projeto dbt
-    ├── README.md                   # Documentação técnica do dbt
+├── docs/assets/                # prints e vídeo usados neste README
+│
+├── airflow/
+│   ├── Dockerfile              # imagem Airflow + dbt em venv isolado + git
+│   ├── requirements.txt        # versões do dbt
+│   ├── dags/
+│   │   └── dbt_northwind.py    # a DAG: comandos, ordem e agendamento
+│   ├── logs/                   # logs de execução (gerado)
+│   └── plugins/                # extensões (vazio)
+│
+└── northwind_dbt/
+    ├── dbt_project.yml         # materializações e tags por camada
+    ├── profiles.yml            # conexão via env vars
+    ├── packages.yml            # dbt_utils 1.4.0
     │
-    ├── models/                     # Modelos SQL (transformações)
-    │   ├── staging/                # Camada 1: Limpeza e normalização
-    │   │   ├── sources.yml         # Definição das 11 fontes Northwind
-    │   │   ├── staging.yml         # Documentação de modelos e testes do staging
-    │   │   ├── stg_orders.sql
-    │   │   ├── stg_customers.sql
-    │   │   └── ... (outros stg_*)
-    │   │
-    │   ├── analytics/              # Camada 2: Transformações analíticas
-    │   │   ├── fct_orders.sql
-    │   │   ├── dim_customers.sql
-    │   │   └── ... (fct_*, dim_*)
-    │   │
-    │   └── mart/                   # Camada 3: Métricas finais para BI
-    │       ├── mart_sales_summary.sql
-    │       ├── mart_customer_metrics.sql
-    │       └── ... (mart_*)
+    ├── models/
+    │   ├── staging/            # sources.yml, staging.yml, stg_*.sql
+    │   ├── analytics/
+    │   │   ├── facts/          # facts.yml, fct_orders, fct_order_items
+    │   │   └── dimensions/     # dimensions.yml, dim_* (customers, products, employees, categories)
+    │   └── marts/              # marts.yml, mart_*.sql
     │
-    ├── tests/                      # Testes de qualidade de dados
-    │   └── (Testes genericidade e customizados)
-    │
-    ├── macros/                     # Macros reutilizáveis
-    │   └── (Funções customizadas dbt)
-    │
-    ├── seeds/                      # Dados estáticos (lookup tables)
-    │   └── (CSVs para seed)
-    │
-    ├── analyses/                   # Análises ad-hoc (não são modelos)
-    │   └── (Queries exploratórias)
-    │
-    ├── snapshots/                  # Snapshots de dimensões (SCD)
-    │   └── (Histórico de mudanças)
-    │
-    ├── target/                     # Artefatos compilados (gerado)
-    │   ├── manifest.json
-    │   ├── graph.gpickle
-    │   └── semantic_manifest.json
-    │
-    └── logs/                       # Logs de execução dbt
+    ├── tests/ macros/ seeds/    # reservados, ainda sem conteúdo
+    ├── snapshots/               # reservado para SCD
+    ├── target/                  # artefatos compilados (gerado)
+    └── logs/                    # logs do dbt (gerado)
 ```
+
+Os testes hoje são declarativos (`unique`, `not_null`, `relationships`) nos arquivos `.yml` de cada camada — a pasta `tests/` fica reservada para testes singulares em SQL.
 
 ---
 
-## 📊 Fluxo de Desenvolvimento
+## 🛠️ Comandos dbt úteis
 
-### Ciclo de Trabalho Típico
-
-1. **Adicionar modelo SQL** em `models/staging/`, `models/analytics/` ou `models/mart/`
-2. **Definir testes** em `tests/` ou via YAML (properties)
-3. **Rodar dbt**:
-   ```bash
-   dbt run --models +seu_modelo  # Compila modelo e dependências
-   dbt test --models +seu_modelo # Executa testes
-   ```
-4. **Revisar resultados** no banco de dados
-5. **Documentar** no arquivo `.yml` correspondente
-
-### Comandos dbt Úteis
+Executados de dentro de `northwind_dbt/` (local) ou via `docker compose exec airflow-scheduler`.
 
 ```bash
-dbt compile              # Compila modelos sem rodar
-dbt run                  # Roda todos os modelos
-dbt test                 # Executa testes de dados
-dbt snapshot             # Cria snapshot de dados históricos
-dbt docs generate        # Gera documentação
-dbt docs serve           # Abre documentação interativa
-dbt freshness            # Verifica atualização das fontes
-dbt debug                # Diagnostica problemas de conexão
-dbt parse                # Valida sintaxe dos modelos
+dbt run --select stg_orders          # um modelo
+dbt run --select +mart_sales_summary # um modelo e todas as suas dependências
+dbt run --select staging             # uma camada inteira (por pasta)
+dbt run --select tag:dimensions      # por tag
+dbt test --select +fct_orders        # testes do modelo e das dependências
+
+dbt compile                          # gera o SQL sem executar
+dbt parse                            # valida sintaxe e referências
+dbt docs generate && dbt docs serve  # documentação em http://localhost:8000
 ```
 
 ---
 
-## 📸 Evidências da Documentação dbt
+## 📸 Evidências
 
-A documentação gerada com `dbt docs` foi validada e está disponível com a navegação dos modelos, fontes e lineage do projeto.
+### Orquestração no Airflow
 
-### Página inicial da documentação
+A DAG `dbt_northwind` no Graph view: as quatro tasks `BashOperator` em sequência e o histórico de execuções bem-sucedidas à esquerda.
 
-![Homepage da documentação dbt](dbt%20docs%20homepage.jpg)
+![Graph view da DAG dbt_northwind no Airflow](docs/assets/airflow-dag-graph.png)
 
-### Detalhes de um modelo mart
+### Documentação dbt
 
-![Detalhes do modelo mart_product_performance](dbt%20docs%20mart.jpg)
+![Homepage da documentação dbt](docs/assets/dbt-docs-homepage.jpg)
 
-### Lineage graph dos modelos
+Detalhe de um modelo mart:
 
-![Lineage graph do projeto dbt](lineage%20graph.jpg)
+![Detalhes do modelo mart_product_performance](docs/assets/dbt-docs-mart.jpg)
 
-### 🎬 Dashboard de apresentação
+Lineage graph:
 
-A imagem abaixo mostra uma visão geral do dashboard construído com os indicadores e visualizações do projeto Northwind:
+![Lineage graph do projeto dbt](docs/assets/dbt-lineage-graph.jpg)
 
-<a href="./Dashboard%20Northwind.mp4" download>
-  <img src="./dashboard.png" alt="Dashboard Northwind" width="100%">
+### 🎬 Dashboard
+
+<a href="./docs/assets/dashboard-northwind.mp4" download>
+  <img src="./docs/assets/dashboard.png" alt="Dashboard Northwind" width="100%">
 </a>
 
-Clique na imagem para baixar o vídeo de apresentação: [Dashboard Northwind.mp4](Dashboard%20Northwind.mp4)
+Clique na imagem para baixar o vídeo de apresentação: [dashboard-northwind.mp4](docs/assets/dashboard-northwind.mp4)
 
 ---
 
 ## 🎯 Roadmap
 
-### ✅ Fase 1: Estrutura Base (Concluída)
-- [x] Configuração do Docker Compose com PostgreSQL
-- [x] Inicialização do projeto dbt
-- [x] Mapeamento das 11 tabelas do Northwind (sources.yml)
-- [x] Estrutura de diretórios (staging, analytics, mart)
+### ✅ Fase 1 — Estrutura base
+- [x] Docker Compose com PostgreSQL
+- [x] Projeto dbt inicializado
+- [x] 11 tabelas-fonte mapeadas em `sources.yml`
 
-### 📋 Fase 2: Camada Staging (Concluída)
-- [x] Criar modelos `stg_*` para cada tabela
-- [x] Definir limpeza e normalização básica
-- [x] Documentar campos e validações em `models/staging/staging.yml`
-- [x] Implementar testes de qualidade básicos (`unique`, `not_null`, `relationships`)
-- [ ] EXTRA: Expandir cobertura de testes e modelos de dados adicionais
-  - [ ] Adicionar testes de valores esperados (`accepted_values`)
-  - [ ] Padronizar tipos de dados (datas, números, textos)
-  - [x] Gerar documentação automática (`dbt docs`)
+### ✅ Fase 2 — Camada Staging
+- [x] Um modelo `stg_*` por tabela-fonte
+- [x] Limpeza, normalização e padronização de tipos
+- [x] Documentação e testes em `staging.yml`
+- [x] Documentação automática (`dbt docs`)
+- [ ] Expandir testes de valores esperados (`accepted_values`)
 
-### 📋 Fase 3: Camada Analytics (Concluída)
-- [x] Criar fact tables (`fct_orders`, `fct_order_items`)
-- [x] Criar dimension tables (`dim_customers`, `dim_products`, `dim_employees`)
-- [x] Implementar agregações por período
+### ✅ Fase 3 — Camada Analytics
+- [x] Fatos: `fct_orders`, `fct_order_items`
+- [x] Dimensões: `dim_customers`, `dim_products`, `dim_employees`, `dim_categories`
 - [x] Testes de integridade referencial
 
-### 📋 Fase 4: Marts (Concluída)
-- [x] Criar métricas de vendas (`mart_sales_summary`)
-- [x] Criar KPIs de clientes (`mart_customer_metrics`)
-- [x] Criar análises por produto e região (`mart_product_performance` e `mart_sales_by_region`)
-- [x] Otimizar para performance em BI
+### ✅ Fase 4 — Marts
+- [x] `mart_sales_summary`, `mart_customer_metrics`
+- [x] `mart_product_performance`, `mart_sales_by_region`
 
-### 📋 Fase 5: Documentação e Testes (Em Andamento)
-- [x] Documentação completa de modelos
-- [x] Suite de testes abrangente
-- [x] Snapshots para auditoria de dimensões
+### ✅ Fase 5 — Documentação e testes
+- [x] Documentação completa dos modelos
+- [x] Suite de 66 testes
+- [ ] Snapshots para auditoria de dimensões (SCD)
 
-### 📋 Fase 6: BI e Visualização (Futuro)
-- [x] Integração com ferramentas de BI (Metabase, Superset)
-- [x] Dashboards iniciais
+### ✅ Fase 6 — BI e visualização
+- [x] Dashboard com os indicadores do Northwind
 - [ ] Alertas de qualidade de dados
 
----
-
-## 📖 Documentação Adicional
-
-- [dbt Official Docs](https://docs.getdbt.com/)
-- [PostgreSQL Docs](https://www.postgresql.org/docs/)
-- [Northwind Database Info](https://learn.microsoft.com/en-us/dotnet/framework/data/adonet/sql/linq/downloading-sample-databases)
-
----
-
-## 🤝 Contribuindo
-
-Para adicionar novos modelos ou melhorias:
-
-1. Criar branch: `git checkout -b feature/novo-modelo`
-2. Implementar no diretório apropriado (`staging/`, `analytics/`, `mart/`)
-3. Adicionar testes e documentação
-4. Rodar `dbt run && dbt test` localmente
-5. Submeter pull request
+### ✅ Fase 7 — Orquestração
+- [x] Airflow no Docker Compose (webserver, scheduler, banco de metadados)
+- [x] dbt em venv isolado dentro da imagem do Airflow
+- [x] `profiles.yml` versionado, resolvido por variáveis de ambiente
+- [x] DAG `dbt_northwind` com agendamento diário
+- [ ] Notificação em caso de falha
+- [ ] Uma task do Airflow por modelo dbt (ex.: Astronomer Cosmos)
 
 ---
 
-## 📝 Licença
+Projeto de portfólio, fornecido como exemplo educacional.
 
-Este projeto é fornecido como exemplo educacional.
-
----
-
-**Última atualização**: Junho de 2026  
-**Versão do projeto**: 1.0.0  
-**Status**: Em desenvolvimento (Fase 2)
+**Última atualização**: Agosto de 2026 · **Versão**: 1.1.0 · **Status**: Fases 1–7 concluídas
