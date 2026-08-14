@@ -1,0 +1,4 @@
+# Dependencias do dbt — instaladas em /opt/dbt_venv (venv isolado do Airflow).
+# Versoes alinhadas com o ambiente de desenvolvimento local (venv/).
+dbt-core==1.12.*
+dbt-postgres==1.10.*
